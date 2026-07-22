@@ -68,16 +68,17 @@ st.sidebar.markdown(
 **Módulos**
 - ◎ **Astro Quant** — Cyclic Index + multi-asset
 - ◎ **Alfayate Engine** — top-down + RS
+- ◎ **Bagger Scanner** — multi-baggers (literatura)
 """
 )
 
 st.markdown('<div class="hero-title">AstroTrading</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="hero-sub">Dashboard privado · Cyclic Index de Barbault + motor top-down Alfayate</div>',
+    '<div class="hero-sub">Dashboard privado · Cyclic Index · Alfayate top-down · Bagger Scanner</div>',
     unsafe_allow_html=True,
 )
 
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 with col1:
     st.markdown("#### Astro Quant")
     st.write(
@@ -93,6 +94,14 @@ with col2:
         "después ranking de acciones líderes por relative strength y momentum."
     )
     st.page_link("pages/2_Alfayate_Engine.py", label="Abrir Alfayate Engine →", icon="🧭")
+
+with col3:
+    st.markdown("#### Bagger Scanner")
+    st.write(
+        "Scanner de potenciales multi-baggers alineado con Mayer, Phelps, O'Neil, "
+        "Fisher, Lynch y Minervini: quality, growth, RS, valuation y bonus."
+    )
+    st.page_link("pages/3_Bagger_Scanner.py", label="Abrir Bagger Scanner →", icon="🎯")
 
 st.markdown("---")
 st.markdown("#### Stack del MVP")

@@ -4,7 +4,8 @@ Dashboard web **privado** que combina:
 
 1. **Astro Quant** — Cyclic Index de André Barbault (determinístico, alta precisión) + comparativa multi-asset + señal de régimen.
 2. **Alfayate Engine** — análisis top-down (intermarket / tendencia / amplitud) y ranking de acciones por relative strength.
-3. **Capa de agentes** — narrativas LLM (xAI Grok u OpenAI) con fallback a plantillas.
+3. **Bagger Scanner** — candidatos multi-bagger / 100-bagger con scoring explícito según Mayer, Phelps, O’Neil, Fisher, Lynch y Minervini.
+4. **Capa de agentes** — narrativas LLM (xAI Grok u OpenAI) con fallback a plantillas.
 
 > Uso personal / research. No constituye consejo de inversión.
 
@@ -60,6 +61,7 @@ AstroTrading/
 │   ├── quant/                      # Régimen + regresión multi-asset
 │   ├── market_data/                # yfinance + universo extensible
 │   ├── alfayate/engine.py          # Top-down + RS ranking
+│   ├── bagger/                     # Multi-bagger scanner (literatura)
 │   ├── agents/narratives.py        # LLM + templates
 │   ├── auth_gate.py
 │   └── data_service.py
@@ -69,6 +71,8 @@ AstroTrading/
 ├── tests/
 ├── data/generated/                 # Series cacheadas
 ├── docs/
+│   ├── cyclic_index.md
+│   └── bagger_scanner.md
 ├── requirements.txt
 └── .env.example
 ```
@@ -141,6 +145,26 @@ Abre `http://localhost:8501`, inicia sesión con las credenciales de `.env`.
 3. Ranking RS 3m/6m/12m vs SPX + momentum + filtros de tendencia.
 4. Razones legibles por ticker.
 
+### Bagger Scanner
+Scanner de **potenciales multi-baggers** con score 0–100 transparente:
+
+| Pilar | Peso | Literatura |
+|-------|------|------------|
+| Quality (ROE/ROIC, márgenes, D/E) | 30% | Mayer, Fisher, Phelps |
+| Growth (sales/EPS) | 25% | Mayer, O’Neil, Lynch |
+| Momentum / RS + SMA / 52w | 25% | O’Neil, Minervini |
+| Valuation (PEG, P/E) | 15% | Lynch, Mayer |
+| Bonus (insiders, buybacks) | 5% | Fisher, Mayer |
+
+- Contexto de régimen vía Alfayate (aviso en Risk-Off, no bloqueo).
+- Universo ~200 tickers líquidos (configurable en `bagger/universe.py`).
+- Detalle: [`docs/bagger_scanner.md`](docs/bagger_scanner.md).
+
+```python
+from astrotrading.bagger import run_bagger_scanner
+print(run_bagger_scanner(top_n=15).candidates[0])
+```
+
 ### Extender commodities / activos
 En `src/astrotrading/market_data/fetchers.py`:
 
@@ -189,6 +213,7 @@ CMD ["streamlit", "run", "app/Home.py", "--server.port=8501", "--server.address=
 - [x] Charts vs SPX, Gold, BTC, WTI, Copper
 - [x] Señal de régimen con justificación
 - [x] Ranking top-down estilo Alfayate
+- [x] Bagger Scanner con criterios literarios + razones
 - [x] Código tipado, documentado, README
 - [x] Deploy-friendly (Streamlit)
 
