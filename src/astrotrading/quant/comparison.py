@@ -94,12 +94,13 @@ def compare_index_vs_assets(
     rebased["cyclic_index"] = panel["cyclic_index"]
 
     # Correlations: level CI vs asset returns; ΔCI vs returns
-    rets = panel[asset_cols].pct_change()
+    rets = panel[asset_cols].pct_change(fill_method=None)
     d_ci = panel["cyclic_index"].diff()
     corr_level = {}
     corr_delta = {}
     for col in asset_cols:
-        corr_level[col] = float(panel["cyclic_index"].corr(panel[col].pct_change().fillna(0)))
+        asset_ret = panel[col].pct_change(fill_method=None).fillna(0)
+        corr_level[col] = float(panel["cyclic_index"].corr(asset_ret))
         corr_delta[col] = float(d_ci.corr(rets[col]))
 
     # Forward return regression: r_{t→t+h} ~ a + b * CI_t
