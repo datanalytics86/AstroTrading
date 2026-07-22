@@ -40,7 +40,13 @@ st.caption("Cyclic Index de André Barbault · multi-asset · señal de régimen
 with st.sidebar:
     st.header("Parámetros")
     frame = st.selectbox("Frame", ["heliocentric", "geocentric"], index=0)
-    start = st.selectbox("Inicio histórico", ["2000-01-01", "1990-01-01", "2010-01-01"], index=0)
+    start = st.selectbox(
+        "Inicio histórico",
+        ["1920-01-01", "1950-01-01", "1970-01-01", "1990-01-01", "2000-01-01", "2010-01-01"],
+        index=0,
+        help="El índice se calcula desde 1920 (DE421). Los activos de mercado "
+        "tienen cobertura distinta (SPX ~1927, oro/petróleo más tarde, BTC ~2014).",
+    )
     step = st.selectbox("Muestreo (días)", [7, 14, 30], index=0)
     rebuild = st.checkbox("Forzar recálculo del índice", value=False)
     run = st.button("Actualizar datos", type="primary", use_container_width=True)
@@ -230,8 +236,27 @@ else:
 with st.expander("Contexto histórico del régimen"):
     st.json(regime.context)
 
+# Coverage note for long-horizon correlation
+with st.expander("Cobertura de datos para correlaciones largas"):
+    st.markdown(
+        """
+| Serie | Inicio típico (yfinance / JPL) |
+|-------|--------------------------------|
+| **Cyclic Index** | **1920** (DE421; kernel válido ~1900–2050) |
+| S&P 500 (`^GSPC`) | ~1927 |
+| Gold futures / GLD | futures ~2000 / ETF 2004 |
+| Bitcoin | ~2014 |
+| WTI Crude | futures ~2000 |
+| Copper | futures ~2000 |
+
+La regresión y los charts usan el **solapamiento disponible** entre el índice y cada activo.
+Para correlaciones seculares (décadas), el par más limpio es **Cyclic Index vs SPX** desde ~1927.
+"""
+    )
+
 st.markdown("---")
 st.caption(
     "Fórmula: suma de las 10 distancias angulares mínimas (≤180°) entre Júpiter, Saturno, "
-    "Urano, Neptuno y Plutón. Efemérides JPL DE421 vía skyfield. No es consejo de inversión."
+    "Urano, Neptuno y Plutón. Efemérides JPL DE421 vía skyfield · histórico desde 1920. "
+    "No es consejo de inversión."
 )

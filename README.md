@@ -111,7 +111,7 @@ python -m pytest tests/ -v
 ### Precalcular serie histórica
 
 ```bash
-python scripts/build_historical_index.py --start 2000-01-01 --step 7
+python scripts/build_historical_index.py --start 1920-01-01 --step 7
 ```
 
 ### Arrancar el dashboard
@@ -128,7 +128,8 @@ Abre `http://localhost:8501`, inicia sesión con las credenciales de `.env`.
 
 ### Astro Quant
 - Valor actual del índice + desglose de longitudes y 10 arcos.
-- Histórico desde 2000 (o 1990) con muestreo semanal.
+- Histórico **desde 1920** (semanal; DE421). Ventanas 1950/1970/1990/2000 en el UI.
+- Correlación multi-asset con cobertura realista por activo (SPX ~1927, BTC ~2014, etc.).
 - Comparativa rebased vs **SPX, Gold, BTC, WTI, Copper**.
 - Regresión simple retorno forward ~63d ~ f(Cyclic Index).
 - Señal **Favorable / Neutral / Desfavorable** con percentil, z-score, pendientes y justificación.

@@ -4,7 +4,7 @@ Build historical Cyclic Index series and persist to data/generated/.
 
 Usage:
   python scripts/build_historical_index.py
-  python scripts/build_historical_index.py --start 1990-01-01 --step 7
+  python scripts/build_historical_index.py --start 1920-01-01 --step 7
   python scripts/build_historical_index.py --frame geocentric
 """
 
@@ -23,10 +23,16 @@ from astrotrading.astrology.cyclic_index import (  # noqa: E402
     series_to_dataframe,
 )
 
+DEFAULT_START = "1920-01-01"
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build Barbault Cyclic Index history")
-    parser.add_argument("--start", default="2000-01-01")
+    parser.add_argument(
+        "--start",
+        default=DEFAULT_START,
+        help=f"ISO start date (default: {DEFAULT_START}; DE421 covers ~1900–2050)",
+    )
     parser.add_argument("--end", default=None, help="ISO date (default: today UTC)")
     parser.add_argument("--step", type=int, default=7, help="Sampling step in days")
     parser.add_argument(

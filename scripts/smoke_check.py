@@ -20,8 +20,9 @@ def main() -> int:
         print(f"    {p:8s}  λ = {lon:8.4f}°")
     print(f"    pairs sum check = {sum(r.pairs.values()):.4f}")
 
-    r2 = compute_cyclic_index("2000-01-01")
-    print(f"OK  Anchor 2000-01-01 = {r2.index:.4f}°")
+    for anchor in ("1920-01-01", "2000-01-01"):
+        r2 = compute_cyclic_index(anchor)
+        print(f"OK  Anchor {anchor} = {r2.index:.4f}°")
     return 0
 
 

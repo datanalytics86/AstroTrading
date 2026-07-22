@@ -45,7 +45,7 @@ Serie histórica:
 ```python
 from astrotrading.astrology import compute_cyclic_index_series
 
-series = compute_cyclic_index_series("2000-01-01", "2024-12-31", step_days=7)
+series = compute_cyclic_index_series("1920-01-01", "2026-07-22", step_days=7)
 ```
 
 ## Interpretación de régimen (MVP)

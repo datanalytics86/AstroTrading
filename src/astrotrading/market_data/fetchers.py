@@ -127,7 +127,7 @@ def fetch_price_history(
 
 
 def fetch_multi_asset(
-    start: date | str = "2000-01-01",
+    start: date | str = "1920-01-01",
     end: date | str | None = None,
     assets: Iterable[AssetSpec] | None = None,
     *,

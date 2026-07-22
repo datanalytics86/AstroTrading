@@ -185,9 +185,12 @@ class TestComputeCyclicIndex:
     def test_historical_range_reasonable(self):
         """
         Historical Barbault Cyclic Index typically sits well inside (0, 1800).
-        Sanity check across a few anchor dates.
+        Sanity check across a few anchor dates including long-horizon 1920.
         """
         anchors = [
+            date(1920, 1, 1),
+            date(1950, 1, 1),
+            date(1970, 1, 1),
             date(1990, 1, 1),
             date(2000, 1, 1),
             date(2010, 6, 15),
