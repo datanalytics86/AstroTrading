@@ -10,8 +10,14 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
+# Ensure app/ is importable for bootstrap, then src/ for astrotrading
+_APP = Path(__file__).resolve().parent
+if str(_APP) not in sys.path:
+    sys.path.insert(0, str(_APP))
+from bootstrap import ensure_src_on_path
+
+_src = ensure_src_on_path()
+ROOT = _src.parent if _src.name == "src" else _src
 
 from dotenv import load_dotenv
 

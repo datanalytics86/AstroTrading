@@ -5,31 +5,59 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "src"))
+# Bootstrap path BEFORE any astrotrading import (Streamlit Cloud safe)
+_APP_DIR = Path(__file__).resolve().parents[1]
+if str(_APP_DIR) not in sys.path:
+    sys.path.insert(0, str(_APP_DIR))
+from bootstrap import ensure_src_on_path  # noqa: E402
 
-from dotenv import load_dotenv
+_src = ensure_src_on_path()
+ROOT = _src.parent if _src.name == "src" else _src
+
+from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(ROOT / ".env")
 
-import numpy as np
-import pandas as pd
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import streamlit as st
+import pandas as pd  # noqa: E402
+import plotly.graph_objects as go  # noqa: E402
+from plotly.subplots import make_subplots  # noqa: E402
+import streamlit as st  # noqa: E402
 
-from astrotrading.agents.narratives import generate_regime_narrative
-from astrotrading.astrology.forecast import FORECAST_KERNEL, kernel_coverage_note
-from astrotrading.auth_gate import logout_button, require_login
-from astrotrading.data_service import (
-    asset_labels,
-    build_comparison,
-    build_regime,
-    current_index,
-    load_forecast,
-    load_market_panel,
-    load_or_build_cyclic_series,
-)
+# Import core modules with explicit error surface (Cloud redacts vague traces)
+try:
+    from astrotrading.agents.narratives import generate_regime_narrative
+    from astrotrading.auth_gate import logout_button, require_login
+    from astrotrading.data_service import (
+        asset_labels,
+        build_comparison,
+        build_regime,
+        current_index,
+        load_forecast,
+        load_market_panel,
+        load_or_build_cyclic_series,
+    )
+except Exception as exc:  # pragma: no cover
+    st.set_page_config(page_title="Astro Quant · Error", layout="wide")
+    st.title("Astro Quant — error de importación")
+    st.error(f"**{type(exc).__name__}:** {exc}")
+    st.code(
+        "sys.path:\n"
+        + "\n".join(sys.path[:12])
+        + f"\n\nROOT={ROOT}\nsrc marker={_src / 'astrotrading'}"
+    )
+    st.stop()
+
+try:
+    from astrotrading.astrology.forecast import FORECAST_KERNEL, kernel_coverage_note
+except Exception:  # pragma: no cover
+    FORECAST_KERNEL = "de440s.bsp"
+
+    def kernel_coverage_note() -> str:
+        return (
+            "Forecast module no disponible en este entorno. "
+            "Histórico usa DE421; el forecast requiere `astrotrading.astrology.forecast` + DE440s."
+        )
+
 
 st.set_page_config(page_title="Astro Quant · AstroTrading", page_icon="◈", layout="wide")
 require_login()
@@ -56,6 +84,7 @@ with st.sidebar:
     rebuild_forecast = st.checkbox("Forzar recálculo forecast", value=False)
     run = st.button("Actualizar datos", type="primary", use_container_width=True)
 
+
 @st.cache_data(show_spinner="Calculando Cyclic Index histórico…", ttl=3600)
 def _cached_cyclic(start: str, step: int, frame: str, rebuild: bool) -> pd.DataFrame:
     return load_or_build_cyclic_series(start=start, step_days=step, frame=frame, force_rebuild=rebuild)
@@ -72,7 +101,6 @@ def _cached_forecast(frame: str, rebuild: bool) -> tuple[pd.DataFrame, dict]:
     return fdf, summary.to_dict()
 
 
-# Auto-load on first visit
 if "aq_loaded" not in st.session_state or run:
     st.session_state["aq_loaded"] = True
 
@@ -89,7 +117,7 @@ with st.spinner("Cargando motor Astro Quant…"):
         try:
             forecast_df, forecast_summary = _cached_forecast(frame, rebuild_forecast)
         except Exception as exc:
-            st.session_state["forecast_error"] = str(exc)
+            st.session_state["forecast_error"] = f"{type(exc).__name__}: {exc}"
 
 # --- KPI row ---
 regime_color = {
@@ -135,7 +163,6 @@ fig_ci.add_trace(
         fillcolor="rgba(91,159,212,0.08)",
     )
 )
-# percentile bands
 mu = cyclic_df["cyclic_index"].mean()
 p25 = cyclic_df["cyclic_index"].quantile(0.25)
 p75 = cyclic_df["cyclic_index"].quantile(0.75)
@@ -193,7 +220,6 @@ else:
     fk4.metric("Tendencia", fs["trend_label"].title())
     fk5.metric("Pendiente", f"{fs['slope_per_year']:+.1f}°/a")
 
-    # Combined chart: recent history + forecast
     fig_fc = go.Figure()
     hist_cut = pd.Timestamp(fs["as_of"]) - pd.DateOffset(years=hist_overlay_years)
     hist_tail = cyclic_df[cyclic_df["date"] >= hist_cut].copy()
@@ -218,7 +244,6 @@ else:
             fillcolor="rgba(196,165,245,0.10)",
         )
     )
-    # Today vertical line (ISO date string for Plotly date axis)
     fig_fc.add_vline(
         x=fs["as_of"],
         line_dash="dash",
@@ -226,7 +251,6 @@ else:
         annotation_text="hoy",
         annotation_position="top",
     )
-    # Mark global min/max of forecast
     fig_fc.add_trace(
         go.Scatter(
             x=[fs["forecast_min_date"], fs["forecast_max_date"]],
@@ -238,7 +262,6 @@ else:
             textposition="top center",
         )
     )
-    # Local extrema
     for ext in (fs.get("next_extrema") or [])[:5]:
         fig_fc.add_annotation(
             x=ext["date"],
@@ -350,7 +373,6 @@ if comparison is None or comparison["panel_rebased"].empty:
     st.warning("No hay datos de mercado disponibles (yfinance). Reintenta más tarde.")
 else:
     rebased = comparison["panel_rebased"].copy()
-    # Normalize cyclic index onto secondary axis-friendly scale for overlay option
     asset_cols = [c for c in rebased.columns if c != "cyclic_index"]
 
     fig = make_subplots(specs=[[{"secondary_y": True}]])
@@ -371,7 +393,6 @@ else:
             ),
             secondary_y=False,
         )
-    # CI on secondary axis (raw level)
     fig.add_trace(
         go.Scatter(
             x=rebased.index,
@@ -393,7 +414,6 @@ else:
     fig.update_yaxes(title_text="Cyclic Index (°)", secondary_y=True)
     st.plotly_chart(fig, use_container_width=True)
 
-    # Regression table
     st.markdown("##### Regresión simple: retorno forward ~63d ~ α + β · Cyclic Index")
     regs = comparison["regressions"]
     reg_df = pd.DataFrame(
@@ -416,7 +436,6 @@ else:
         "(relación estadística descriptiva, no causalidad)."
     )
 
-    # Correlation heatmap-ish table
     c_delta = comparison["correlations_delta"]
     st.markdown("##### Correlación ΔCI vs retornos diarios del activo")
     corr_df = pd.DataFrame(
@@ -424,11 +443,9 @@ else:
     )
     st.dataframe(corr_df, hide_index=True, use_container_width=True)
 
-# Context box
 with st.expander("Contexto histórico del régimen"):
     st.json(regime.context)
 
-# Coverage note for long-horizon correlation
 with st.expander("Cobertura de datos para correlaciones largas"):
     st.markdown(
         """

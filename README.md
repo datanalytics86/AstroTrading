@@ -196,6 +196,13 @@ AssetSpec("silver", "Silver", "SI=F", "metal"),
 
 **Streamlit Community Cloud:** conecta el repo, entrypoint `app/Home.py`, secrets con las vars de auth.
 
+Requisitos Cloud:
+- Main file: `app/Home.py`
+- Python 3.11+
+- `requirements.txt` instala el paquete local con `-e .` (layout `src/astrotrading`)
+- Secrets: `ASTROTRADING_USERNAME`, `ASTROTRADING_PASSWORD`
+- Tras un `ImportError` en páginas: redespliega (Manage app → Reboot) para recoger el path bootstrap
+
 **Docker (simple):**
 
 ```dockerfile

@@ -22,7 +22,10 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 CACHE_DIR = Path(__file__).resolve().parents[3] / "data" / "cache"
-CACHE_DIR.mkdir(parents=True, exist_ok=True)
+try:
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+except OSError:
+    pass
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,9 +53,9 @@ _FALLBACKS: dict[str, list[str]] = {
 }
 
 
-def _cache_path(ticker: str, start: str, end: str) -> Path:
+def _cache_path(ticker: str, start: str, end: str, suffix: str = "parquet") -> Path:
     safe = ticker.replace("=", "_").replace("^", "")
-    return CACHE_DIR / f"{safe}_{start}_{end}.parquet"
+    return CACHE_DIR / f"{safe}_{start}_{end}.{suffix}"
 
 
 def fetch_price_history(
@@ -81,17 +84,24 @@ def fetch_price_history(
     else:
         end_s = end
 
-    cache = _cache_path(ticker, start_s, end_s)
-    if use_cache and cache.exists():
-        # Refresh if cache older than 1 day
-        mtime = datetime.fromtimestamp(cache.stat().st_mtime)
-        if datetime.now() - mtime < timedelta(hours=18):
+    cache_parquet = _cache_path(ticker, start_s, end_s, "parquet")
+    cache_csv = _cache_path(ticker, start_s, end_s, "csv")
+    if use_cache:
+        for cache in (cache_parquet, cache_csv):
+            if not cache.exists():
+                continue
+            mtime = datetime.fromtimestamp(cache.stat().st_mtime)
+            if datetime.now() - mtime >= timedelta(hours=18):
+                continue
             try:
-                df = pd.read_parquet(cache)
+                if cache.suffix == ".parquet":
+                    df = pd.read_parquet(cache)
+                else:
+                    df = pd.read_csv(cache, parse_dates=["date"])
                 if not df.empty:
                     return df
             except Exception:
-                pass
+                continue
 
     logger.info("Downloading %s [%s → %s]", ticker, start_s, end_s)
     raw = yf.download(
@@ -119,9 +129,13 @@ def fetch_price_history(
 
     if use_cache and not out.empty:
         try:
-            out.to_parquet(cache, index=False)
+            out.to_parquet(cache_parquet, index=False)
         except Exception as exc:
-            logger.debug("Cache write failed: %s", exc)
+            logger.debug("Parquet cache write failed: %s — trying CSV", exc)
+            try:
+                out.to_csv(cache_csv, index=False)
+            except Exception as exc2:
+                logger.debug("CSV cache write failed: %s", exc2)
 
     return out
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 from datetime import date, timedelta
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
@@ -19,25 +20,28 @@ from astrotrading.astrology.cyclic_index import (
     compute_cyclic_index_series,
     series_to_dataframe,
 )
-from astrotrading.astrology.forecast import (
-    DEFAULT_FORECAST_YEARS,
-    FORECAST_KERNEL,
-    ForecastSummary,
-    load_or_build_forecast,
-)
 from astrotrading.market_data.fetchers import ASSET_UNIVERSE, fetch_multi_asset
 from astrotrading.quant.comparison import compare_index_vs_assets
 from astrotrading.quant.regime import RegimeSignal, classify_regime
 
+if TYPE_CHECKING:
+    from astrotrading.astrology.forecast import ForecastSummary
+
 logger = logging.getLogger(__name__)
 
+# src/astrotrading/data_service.py → parents[2] = repo root
 ROOT = Path(__file__).resolve().parents[2]
 GENERATED = ROOT / "data" / "generated"
-GENERATED.mkdir(parents=True, exist_ok=True)
+try:
+    GENERATED.mkdir(parents=True, exist_ok=True)
+except OSError:
+    # Streamlit Cloud / read-only edge cases — write paths handled later
+    pass
 
 # Longest default window (JPL DE421 covers ~1900–2050)
 DEFAULT_INDEX_START = "1920-01-01"
 DEFAULT_STEP_DAYS = 7
+DEFAULT_FORECAST_YEARS = 50
 
 
 def cyclic_csv_path(frame: str = "heliocentric") -> Path:
@@ -163,12 +167,25 @@ def load_forecast(
     step_days: int = 14,
     frame: str = "heliocentric",
     force_rebuild: bool = False,
-) -> tuple[pd.DataFrame, ForecastSummary]:
+) -> tuple[pd.DataFrame, Any]:
     """
     50-year (default) orbital forecast of the Cyclic Index.
 
     Uses JPL DE440s — DE421 stops ~2053 and cannot cover a full +50y window.
+
+    Forecast is imported lazily so the rest of Astro Quant still loads if the
+    forecast submodule fails on a given environment.
     """
+    from astrotrading.astrology.forecast import (  # noqa: WPS433
+        FORECAST_KERNEL,
+        load_or_build_forecast,
+    )
+
+    try:
+        GENERATED.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
+
     return load_or_build_forecast(
         years=years,
         step_days=step_days,
