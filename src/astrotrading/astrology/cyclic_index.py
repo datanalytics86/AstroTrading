@@ -102,9 +102,14 @@ def cyclic_index_from_longitudes(longitudes: Sequence[float]) -> float:
 # ---------------------------------------------------------------------------
 
 
-@lru_cache(maxsize=2)
+@lru_cache(maxsize=4)
 def _load_ephemeris(kernel: str = _DEFAULT_KERNEL):
-    """Load JPL ephemeris kernel via skyfield (cached)."""
+    """Load JPL ephemeris kernel via skyfield (cached).
+
+    Supported kernels in this project:
+      - de421.bsp  — historical default (~1900–2053)
+      - de440s.bsp — forecast / long-horizon (covers +50y and beyond)
+    """
     from skyfield.api import Loader
 
     # Prefer project data/ dir so kernels are versionable / offline-friendly

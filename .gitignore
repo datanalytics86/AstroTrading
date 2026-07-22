@@ -26,6 +26,7 @@ data/cache/
 data/generated/*
 !data/generated/.gitkeep
 !data/generated/cyclic_index_heliocentric.csv
+!data/generated/cyclic_index_forecast_50y_heliocentric.csv
 
 # Streamlit
 .streamlit/secrets.toml

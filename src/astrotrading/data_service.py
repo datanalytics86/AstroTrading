@@ -19,6 +19,12 @@ from astrotrading.astrology.cyclic_index import (
     compute_cyclic_index_series,
     series_to_dataframe,
 )
+from astrotrading.astrology.forecast import (
+    DEFAULT_FORECAST_YEARS,
+    FORECAST_KERNEL,
+    ForecastSummary,
+    load_or_build_forecast,
+)
 from astrotrading.market_data.fetchers import ASSET_UNIVERSE, fetch_multi_asset
 from astrotrading.quant.comparison import compare_index_vs_assets
 from astrotrading.quant.regime import RegimeSignal, classify_regime
@@ -149,3 +155,25 @@ def build_comparison(cyclic_df: pd.DataFrame, market: pd.DataFrame) -> dict:
 
 def asset_labels() -> dict[str, str]:
     return {a.key: a.label for a in ASSET_UNIVERSE}
+
+
+def load_forecast(
+    *,
+    years: int = DEFAULT_FORECAST_YEARS,
+    step_days: int = 14,
+    frame: str = "heliocentric",
+    force_rebuild: bool = False,
+) -> tuple[pd.DataFrame, ForecastSummary]:
+    """
+    50-year (default) orbital forecast of the Cyclic Index.
+
+    Uses JPL DE440s — DE421 stops ~2053 and cannot cover a full +50y window.
+    """
+    return load_or_build_forecast(
+        years=years,
+        step_days=step_days,
+        frame=frame,  # type: ignore[arg-type]
+        kernel=FORECAST_KERNEL,
+        force_rebuild=force_rebuild,
+        generated_dir=GENERATED,
+    )

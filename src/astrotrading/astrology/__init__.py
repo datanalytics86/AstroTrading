@@ -7,6 +7,14 @@ from .cyclic_index import (
     compute_cyclic_index_series,
     pair_distances,
 )
+from .forecast import (
+    FORECAST_KERNEL,
+    ForecastSummary,
+    compute_cyclic_index_forecast,
+    kernel_coverage_note,
+    load_or_build_forecast,
+    summarize_forecast,
+)
 
 __all__ = [
     "PLANETS",
@@ -14,4 +22,10 @@ __all__ = [
     "compute_cyclic_index",
     "compute_cyclic_index_series",
     "pair_distances",
+    "FORECAST_KERNEL",
+    "ForecastSummary",
+    "compute_cyclic_index_forecast",
+    "kernel_coverage_note",
+    "load_or_build_forecast",
+    "summarize_forecast",
 ]

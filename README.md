@@ -20,7 +20,7 @@ Dashboard web **privado** que combina:
 
 **Elegido: Streamlit + Python 3.11+** porque el valor del MVP está en el **rigor del Cyclic Index** y el motor quant, no en el framework frontend. El entorno de desarrollo actual no incluye Node.js; Python + skyfield es el camino más corto a un producto usable y correcto.
 
-- **Efemérides:** skyfield + jplephem (JPL DE421)
+- **Efemérides:** skyfield + jplephem (JPL DE421 histórico; **DE440s** para forecast +50y)
 - **Mercados:** yfinance (extensible a Polygon)
 - **Charts:** Plotly
 - **Auth:** single-user (usuario/contraseña, opcional bcrypt)
@@ -133,11 +133,17 @@ Abre `http://localhost:8501`, inicia sesión con las credenciales de `.env`.
 ### Astro Quant
 - Valor actual del índice + desglose de longitudes y 10 arcos.
 - Histórico **desde 1920** (semanal; DE421). Ventanas 1950/1970/1990/2000 en el UI.
+- **Forecast orbital a 50 años** (DE440s; DE421 solo llega a ~2053) con chart histórico+futuro, min/max y zonas de compresión/expansión.
 - Correlación multi-asset con cobertura realista por activo (SPX ~1927, BTC ~2014, etc.).
 - Comparativa rebased vs **SPX, Gold, BTC, WTI, Copper**.
 - Regresión simple retorno forward ~63d ~ f(Cyclic Index).
 - Señal **Favorable / Neutral / Desfavorable** con percentil, z-score, pendientes y justificación.
 - Narrativa LLM opcional.
+
+```bash
+# Regenerar proyección 50y
+python scripts/build_forecast_50y.py --force
+```
 
 ### Alfayate Engine (MVP)
 1. Régimen: tendencia SPX (SMA50/200), SPX/Gold, HYG/TLT, BTC.

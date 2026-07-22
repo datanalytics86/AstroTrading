@@ -19,12 +19,14 @@ from plotly.subplots import make_subplots
 import streamlit as st
 
 from astrotrading.agents.narratives import generate_regime_narrative
+from astrotrading.astrology.forecast import FORECAST_KERNEL, kernel_coverage_note
 from astrotrading.auth_gate import logout_button, require_login
 from astrotrading.data_service import (
     asset_labels,
     build_comparison,
     build_regime,
     current_index,
+    load_forecast,
     load_market_panel,
     load_or_build_cyclic_series,
 )
@@ -49,6 +51,9 @@ with st.sidebar:
     )
     step = st.selectbox("Muestreo (días)", [7, 14, 30], index=0)
     rebuild = st.checkbox("Forzar recálculo del índice", value=False)
+    show_forecast = st.checkbox("Proyección 50 años", value=True)
+    hist_overlay_years = st.slider("Histórico en chart forecast (años)", 10, 30, 25)
+    rebuild_forecast = st.checkbox("Forzar recálculo forecast", value=False)
     run = st.button("Actualizar datos", type="primary", use_container_width=True)
 
 @st.cache_data(show_spinner="Calculando Cyclic Index histórico…", ttl=3600)
@@ -59,6 +64,12 @@ def _cached_cyclic(start: str, step: int, frame: str, rebuild: bool) -> pd.DataF
 @st.cache_data(show_spinner="Descargando mercados…", ttl=3600)
 def _cached_market(start: str) -> pd.DataFrame:
     return load_market_panel(start=start)
+
+
+@st.cache_data(show_spinner="Proyectando Cyclic Index a 50 años (DE440s)…", ttl=3600)
+def _cached_forecast(frame: str, rebuild: bool) -> tuple[pd.DataFrame, dict]:
+    fdf, summary = load_forecast(years=50, step_days=14, frame=frame, force_rebuild=rebuild)
+    return fdf, summary.to_dict()
 
 
 # Auto-load on first visit
@@ -72,6 +83,13 @@ with st.spinner("Cargando motor Astro Quant…"):
     regime = build_regime(cyclic_df, step_days=step)
     comparison = build_comparison(cyclic_df, market) if not market.empty else None
     labels = asset_labels()
+    forecast_df = None
+    forecast_summary = None
+    if show_forecast:
+        try:
+            forecast_df, forecast_summary = _cached_forecast(frame, rebuild_forecast)
+        except Exception as exc:
+            st.session_state["forecast_error"] = str(exc)
 
 # --- KPI row ---
 regime_color = {
@@ -134,6 +152,180 @@ fig_ci.update_layout(
     showlegend=False,
 )
 st.plotly_chart(fig_ci, use_container_width=True)
+
+# ---------------------------------------------------------------------------
+# 50-year orbital forecast
+# ---------------------------------------------------------------------------
+st.subheader("Proyección del Cyclic Index — próximos 50 años")
+st.markdown(
+    """
+**Proyección orbital determinística** de las longitudes eclípticas futuras de
+Júpiter–Saturno–Urano–Neptuno–Plutón, aplicando **exactamente la misma fórmula**
+de Barbault (suma de los 10 arcos mínimos ≤ 180°).
+
+> No es una predicción de mercados ni un forecast financiero. Es mecánica celeste
+> (efemérides JPL) para research del índice.
+"""
+)
+
+if not show_forecast:
+    st.caption("Activa «Proyección 50 años» en la barra lateral para calcular/mostrar el forecast.")
+elif forecast_df is None or forecast_summary is None:
+    err = st.session_state.get("forecast_error", "Error desconocido al generar el forecast.")
+    st.error(f"No se pudo generar el forecast: {err}")
+    st.info(kernel_coverage_note())
+else:
+    fs = forecast_summary
+    fk1, fk2, fk3, fk4, fk5 = st.columns(5)
+    fk1.metric("Índice actual (proy.)", f"{fs['current_index']:.1f}°")
+    fk2.metric(
+        "Mín. 50y",
+        f"{fs['forecast_min']:.1f}°",
+        delta=fs["forecast_min_date"][:4],
+        delta_color="off",
+    )
+    fk3.metric(
+        "Máx. 50y",
+        f"{fs['forecast_max']:.1f}°",
+        delta=fs["forecast_max_date"][:4],
+        delta_color="off",
+    )
+    fk4.metric("Tendencia", fs["trend_label"].title())
+    fk5.metric("Pendiente", f"{fs['slope_per_year']:+.1f}°/a")
+
+    # Combined chart: recent history + forecast
+    fig_fc = go.Figure()
+    hist_cut = pd.Timestamp(fs["as_of"]) - pd.DateOffset(years=hist_overlay_years)
+    hist_tail = cyclic_df[cyclic_df["date"] >= hist_cut].copy()
+    if not hist_tail.empty:
+        fig_fc.add_trace(
+            go.Scatter(
+                x=hist_tail["date"],
+                y=hist_tail["cyclic_index"],
+                mode="lines",
+                name=f"Histórico (~{hist_overlay_years}a)",
+                line=dict(color="#8b9cb3", width=1.8),
+            )
+        )
+    fig_fc.add_trace(
+        go.Scatter(
+            x=forecast_df["date"],
+            y=forecast_df["cyclic_index"],
+            mode="lines",
+            name="Proyección 50a",
+            line=dict(color="#c4a5f5", width=2.2),
+            fill="tozeroy",
+            fillcolor="rgba(196,165,245,0.10)",
+        )
+    )
+    # Today vertical line (ISO date string for Plotly date axis)
+    fig_fc.add_vline(
+        x=fs["as_of"],
+        line_dash="dash",
+        line_color="#3dd68c",
+        annotation_text="hoy",
+        annotation_position="top",
+    )
+    # Mark global min/max of forecast
+    fig_fc.add_trace(
+        go.Scatter(
+            x=[fs["forecast_min_date"], fs["forecast_max_date"]],
+            y=[fs["forecast_min"], fs["forecast_max"]],
+            mode="markers+text",
+            name="Extremos 50y",
+            marker=dict(size=10, color=["#5b9fd4", "#f07178"], symbol=["diamond", "diamond"]),
+            text=["mín", "máx"],
+            textposition="top center",
+        )
+    )
+    # Local extrema
+    for ext in (fs.get("next_extrema") or [])[:5]:
+        fig_fc.add_annotation(
+            x=ext["date"],
+            y=ext["value"],
+            text=f"{ext['kind']} {ext['date'][:4]}",
+            showarrow=True,
+            arrowhead=2,
+            ax=0,
+            ay=-30 if ext["kind"] == "max" else 30,
+            font=dict(size=10, color="#e6edf3"),
+            bgcolor="rgba(18,24,32,0.8)",
+        )
+
+    fig_fc.update_layout(
+        template="plotly_dark",
+        height=480,
+        margin=dict(l=20, r=20, t=30, b=20),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        yaxis_title="Cyclic Index (°)",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02),
+        xaxis_title=None,
+    )
+    st.plotly_chart(fig_fc, use_container_width=True)
+
+    st.markdown(fs.get("trend_note") or "")
+
+    c_ext, c_zone = st.columns(2)
+    with c_ext:
+        st.markdown("##### Próximos extremos relevantes")
+        ext_rows = fs.get("next_extrema") or []
+        if ext_rows:
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Fecha": e["date"],
+                            "Tipo": "Mínimo" if e["kind"] == "min" else "Máximo",
+                            "Índice (°)": round(e["value"], 2),
+                        }
+                        for e in ext_rows
+                    ]
+                ),
+                hide_index=True,
+                use_container_width=True,
+            )
+        else:
+            st.caption("Sin extremos locales detectados con el muestreo actual.")
+    with c_zone:
+        st.markdown("##### Zonas de compresión / expansión (forecast)")
+        st.caption(
+            "Compresión = índice en cuartil bajo de la proyección (menor dispersión angular). "
+            "Expansión = cuartil alto. Lectura de research, no señal de trading."
+        )
+        zones = (fs.get("compression_zones") or [])[:3] + (fs.get("expansion_zones") or [])[:3]
+        if zones:
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Tipo": z["kind"],
+                            "Inicio": z["start"],
+                            "Fin": z["end"],
+                            "Media (°)": z["mean_index"],
+                        }
+                        for z in zones
+                    ]
+                ),
+                hide_index=True,
+                use_container_width=True,
+            )
+        else:
+            st.caption("Sin tramos prolongados bajo/sobre los umbrales de cuartil.")
+
+    with st.expander("Notas técnicas del forecast", expanded=False):
+        st.markdown(kernel_coverage_note())
+        st.markdown(
+            f"""
+- **Frame:** `{fs.get('frame')}` · **Kernel:** `{fs.get('kernel', FORECAST_KERNEL)}`
+- **Horizonte:** {fs.get('as_of')} → {fs.get('end')} (~{fs.get('years')} años)
+- **Muestreo:** 14 días (bi-semanal)
+- **Índice al final del horizonte:** {fs.get('end_index'):.2f}° · media proyectada {fs.get('mean'):.2f}°
+- Cache: `data/generated/cyclic_index_forecast_50y_{frame}.csv`
+
+{fs.get('disclaimer', '')}
+"""
+        )
 
 # Pair breakdown for today
 with st.expander("Detalle del cálculo (hoy)"):
@@ -242,7 +434,8 @@ with st.expander("Cobertura de datos para correlaciones largas"):
         """
 | Serie | Inicio típico (yfinance / JPL) |
 |-------|--------------------------------|
-| **Cyclic Index** | **1920** (DE421; kernel válido ~1900–2050) |
+| **Cyclic Index histórico** | **1920** (DE421; ~1900–2053) |
+| **Cyclic Index forecast +50y** | hoy → ~2076 (**DE440s**) |
 | S&P 500 (`^GSPC`) | ~1927 |
 | Gold futures / GLD | futures ~2000 / ETF 2004 |
 | Bitcoin | ~2014 |
@@ -257,6 +450,6 @@ Para correlaciones seculares (décadas), el par más limpio es **Cyclic Index vs
 st.markdown("---")
 st.caption(
     "Fórmula: suma de las 10 distancias angulares mínimas (≤180°) entre Júpiter, Saturno, "
-    "Urano, Neptuno y Plutón. Efemérides JPL DE421 vía skyfield · histórico desde 1920. "
-    "No es consejo de inversión."
+    "Urano, Neptuno y Plutón. Histórico: JPL DE421 · Forecast 50y: JPL DE440s · "
+    "La proyección orbital no es predicción de mercados. No es consejo de inversión."
 )

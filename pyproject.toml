@@ -35,6 +35,9 @@ where = ["src"]
 testpaths = ["tests"]
 pythonpath = ["src"]
 filterwarnings = ["ignore::DeprecationWarning"]
+markers = [
+    "slow: tests that download ephemerides or run multi-year forecasts",
+]
 
 [tool.ruff]
 line-length = 100
