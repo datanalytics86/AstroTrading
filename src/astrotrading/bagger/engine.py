@@ -189,35 +189,39 @@ def _extract_fundamentals(info: dict) -> dict[str, Any]:
                 return v
         return None
 
-    # returnOnCapital / returnOnEquity sometimes present
-    roic = g("returnOnCapital", "returnOnAssets")  # ROA weak proxy if no ROIC
+    # Only true ROIC when present — never mislabel ROA as ROIC (Mayer cares about ROIC)
     roe = g("returnOnEquity")
-    # Prefer explicit ROIC-like if available under alternate keys
+    roic = g("returnOnCapital")
+    # Prefer net margin; fall back to operating margin under same key (documented in reasons via scoring)
+    margin = g("profitMargins")
+    if margin is None:
+        margin = g("operatingMargins")
+
+    # CRITICAL: do not fall back annual earningsGrowth → quarterly (would double-count
+    # the same quarterly figure in both growth sub-scores).
+    earnings_growth = g("earningsGrowth")
+    earnings_q = g("earningsQuarterlyGrowth")
+
     metrics = {
         "name": g("shortName", "longName"),
         "sector": g("sector"),
         "industry": g("industry"),
         "roe": roe,
-        "roic": g("returnOnCapital") or None,  # often missing
-        "profit_margin": g("profitMargins", "operatingMargins"),
+        "roic": roic,
+        "profit_margin": margin,
         "debt_to_equity": g("debtToEquity"),
         "revenue_growth": g("revenueGrowth"),
-        "earnings_growth": g("earningsGrowth", "earningsQuarterlyGrowth"),
-        "earnings_quarterly_growth": g("earningsQuarterlyGrowth"),
+        "earnings_growth": earnings_growth,
+        "earnings_quarterly_growth": earnings_q,
         "peg": g("pegRatio"),
-        "trailing_pe": g("trailingPE", "forwardPE"),
+        # trailing only — never substitute forwardPE (would mis-score valuation)
+        "trailing_pe": g("trailingPE"),
         "insider_pct": g("heldPercentInsiders"),
         "payout_ratio": g("payoutRatio"),
         "market_cap": g("marketCap"),
         "beta": g("beta"),
+        "buyback_yield": g("buybackYield"),
     }
-    # buyback proxy: negative share issuance / not always available
-    # yfinance rarely has buybackYield; leave None
-    metrics["buyback_yield"] = g("buybackYield")
-    # If only ROA as weak quality, store under roic only when returnOnCapital existed
-    if metrics["roic"] is None and roic is not None and "returnOnCapital" not in (info or {}):
-        # do not mislabel ROA as ROIC
-        pass
     return metrics
 
 

@@ -71,13 +71,17 @@ print(summary.trend_label, summary.slope_per_year)
 
 ## Interpretación de régimen (MVP)
 
-Heurística cuantitativa sobre el nivel y la pendiente del índice (no es señal de trading automática):
+Heurística cuantitativa **propia del dashboard** sobre nivel y pendiente del índice
+(no es señal de trading automática ni “ortodoxia Barbault”):
 
-- **Favorable**: índice en zona baja relativa (dispersión planetaria baja / fases de concentración) + pendiente no alcista fuerte.
+- **Favorable** *(en esta app)*: índice en zona baja relativa (menor dispersión angular / planetas más concentrados) + pendiente no alcista fuerte.
 - **Neutral**: zona media o señales mixtas.
-- **Desfavorable**: índice en zona alta relativa (máxima dispersión angular) + pendiente alcista.
+- **Desfavorable** *(en esta app)*: índice en zona alta relativa (mayor dispersión angular) + pendiente alcista.
 
 El dashboard muestra percentil histórico, z-score y pendiente de 1–2 años para justificar la señal.
+
+**Importante:** “compresión” en el forecast 50y describe solo la trayectoria orbital del índice
+(baja / sube / lateral). No implica predicción de mercados.
 
 ## Reproducibilidad
 

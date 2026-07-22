@@ -313,8 +313,9 @@ else:
     with c_zone:
         st.markdown("##### Zonas de compresión / expansión (forecast)")
         st.caption(
-            "Compresión = índice en cuartil bajo de la proyección (menor dispersión angular). "
-            "Expansión = cuartil alto. Lectura de research, no señal de trading."
+            "Compresión = tramos con índice en cuartil bajo de la proyección (menor dispersión angular). "
+            "Expansión = cuartil alto. Solo describe la trayectoria orbital del índice — "
+            "no es predicción de mercados ni señal de trading."
         )
         zones = (fs.get("compression_zones") or [])[:3] + (fs.get("expansion_zones") or [])[:3]
         if zones:

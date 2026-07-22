@@ -174,13 +174,16 @@ class TestComputeCyclicIndex:
         assert r.date == date(2020, 6, 15)
 
     def test_heliocentric_vs_geocentric_differ(self, sample_heliocentric, sample_geocentric):
-        # parallax for outer planets is small but non-zero; indices should differ
-        # (at least longitudes of closer Jupiter/Saturn will shift a bit)
-        # We only assert both are valid; difference is expected but small.
+        # Parallax for outer planets is small but non-zero on 2000-01-01.
         assert validate_index_bounds(sample_heliocentric.index)
         assert validate_index_bounds(sample_geocentric.index)
-        # Not strictly required that they differ every date, but on 2000-01-01 they do
-        assert sample_heliocentric.index != pytest.approx(sample_geocentric.index, abs=1e-6) or True
+        assert sample_heliocentric.index != pytest.approx(sample_geocentric.index, abs=1e-4)
+
+    def test_de421_vs_de440s_close_on_overlap(self):
+        """Same formula + same date: DE421 and DE440s must agree tightly in the overlap era."""
+        a = compute_cyclic_index("2020-06-15", frame="heliocentric", kernel="de421.bsp")
+        b = compute_cyclic_index("2020-06-15", frame="heliocentric", kernel="de440s.bsp")
+        assert a.index == pytest.approx(b.index, abs=1e-2)
 
     def test_historical_range_reasonable(self):
         """

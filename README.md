@@ -36,6 +36,7 @@ Dashboard web **privado** que combina:
 
 - Frame **heliocéntrico** (clásico Barbault) por defecto; geocéntrico opcional.
 - Documentación detallada: [`docs/cyclic_index.md`](docs/cyclic_index.md).
+- Auditoría de calidad: [`docs/QAQC_TIER1_REPORT.md`](docs/QAQC_TIER1_REPORT.md).
 
 ```python
 from datetime import date

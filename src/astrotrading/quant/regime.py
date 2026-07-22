@@ -6,10 +6,13 @@ MVP heuristic (transparent, not a black box):
   - Momentum: slope of index over ~1y and ~2y windows.
   - Composite score → Favorable / Neutral / Desfavorable.
 
-Barbault-inspired reading (simplified for MVP):
-  Lower cyclic index → outer planets more clustered → historically associated
-  with more "constructive / coherent" collective phases.
-  Higher index → maximum angular dispersion → more tense / dispersive phases.
+Heuristic reading used in this dashboard (transparent, not Barbault orthodoxy):
+  Lower cyclic index → outer planets more clustered (smaller mutual arcs).
+  Higher index → greater angular dispersion among the five slow planets.
+
+  The Favorable/Neutral/Desfavorable labels are **research heuristics** for the
+  private dashboard (low level + non-rising slope → "Favorable" in this app).
+  They are NOT a market forecast and NOT a claim of historical inevitability.
 
 This is a research dashboard signal, not investment advice.
 """

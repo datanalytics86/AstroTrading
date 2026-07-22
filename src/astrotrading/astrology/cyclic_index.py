@@ -15,7 +15,6 @@ Ephemeris: JPL DE421/DE440 via skyfield + jplephem (high precision, deterministi
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from functools import lru_cache
@@ -114,7 +113,11 @@ def _load_ephemeris(kernel: str = _DEFAULT_KERNEL):
 
     # Prefer project data/ dir so kernels are versionable / offline-friendly
     data_dir = Path(__file__).resolve().parents[3] / "data" / "ephemeris"
-    data_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        data_dir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        # Streamlit Cloud / read-only edge: Loader may still read if kernel exists
+        pass
     loader = Loader(str(data_dir))
     return loader(kernel), loader.timescale()
 
