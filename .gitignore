@@ -22,8 +22,10 @@ data/ephemeris/*.bsp.*
 
 # Generated series / caches (rebuild via scripts/)
 data/cache/
+# Keep precomputed weekly heliocentric series for fast first boot
 data/generated/*
 !data/generated/.gitkeep
+!data/generated/cyclic_index_heliocentric.csv
 
 # Streamlit
 .streamlit/secrets.toml
